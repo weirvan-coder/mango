@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#15110c">
+<title>海南大芒果 · 数字能量查询</title>
+<style>
+:root{
+  --ink:#15110c;
+  --ink2:#1e1811;
+  --ink3:#282016;
+  --gold:#d4a24e;
+  --gold-dim:#8a6d3b;
+  --mango:#e8912d;
+  --paper:#f3e9d6;
+  --red:#c05a4a;
+  --green:#7a9a6a;
+  --line:rgba(212,162,78,.22);
+  --serif:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:var(--serif);
+  min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212,162,78,.10), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 110%, rgba(232,145,45,.06), transparent);
+  line-height:1.7;
+}
+/* grain */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");}
+.wrap{max-width:520px;margin:0 auto;padding:0 18px 60px}
+
+/* ---------- header ---------- */
+header{padding:44px 0 8px;text-align:center;position:relative}
+.seal{
+  width:64px;height:64px;margin:0 auto 14px;border:1.5px solid var(--gold);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  font-size:30px;color:var(--mango);
+  box-shadow:0 0 0 4px rgba(212,162,78,.08), inset 0 0 18px rgba(212,162,78,.12);
+  animation:spinIn 1.2s cubic-bezier(.2,.8,.3,1) both;
+}
+.seal::after{content:"";position:absolute;inset:5px;border:1px dashed rgba(212,162,78,.35);border-radius:50%}
+@keyframes spinIn{from{transform:rotate(-120deg) scale(.3);opacity:0}to{transform:none;opacity:1}}
+h1{font-size:1.55rem;letter-spacing:.35em;text-indent:.35em;color:var(--gold);font-weight:600}
+.sub{margin-top:6px;font-size:.75rem;letter-spacing:.5em;text-indent:.5em;color:var(--gold-dim)}
+.rule-line{display:flex;align-items:center;gap:10px;margin:22px 0 26px;color:var(--gold-dim)}
+.rule-line::before,.rule-line::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--line))}
+.rule-line::after{background:linear-gradient(90deg,var(--line),transparent)}
+.rule-line span{font-size:.7rem;letter-spacing:.3em}
+
+/* ---------- form ---------- */
+.card{
+  background:linear-gradient(160deg,var(--ink2),var(--ink3));
+  border:1px solid var(--line);border-radius:4px;padding:20px 18px;margin-bottom:16px;
+  position:relative;
+}
+.card::before{content:"";position:absolute;top:8px;left:8px;right:8px;bottom:8px;border:1px solid rgba(212,162,78,.10);border-radius:2px;pointer-events:none}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.75rem;color:var(--gold);letter-spacing:.2em;margin-bottom:6px}
+input[type=tel],select{
+  width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:3px;
+  color:var(--paper);font-family:var(--serif);font-size:1.05rem;padding:11px 12px;outline:none;
+  transition:border-color .25s;
+}
+input[type=tel]{letter-spacing:.28em;font-size:1.25rem;text-align:center}
+input:focus,select:focus{border-color:var(--mango)}
+select{font-size:.9rem;letter-spacing:.1em;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23d4a24e' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{
+  width:100%;margin-top:6px;padding:14px;border:none;border-radius:3px;cursor:pointer;
+  font-family:var(--serif);font-size:1.05rem;letter-spacing:.5em;text-indent:.5em;font-weight:600;
+  color:#1a1208;background:linear-gradient(135deg,var(--gold),var(--mango));
+  box-shadow:0 4px 18px rgba(232,145,45,.25);transition:transform .15s,box-shadow .15s;
+}
+.btn:active{transform:scale(.98)}
+.err{color:var(--red);font-size:.8rem;text-align:center;margin-top:10px;min-height:1.2em;letter-spacing:.1em}
+
+/* ---------- result ---------- */
+#result{display:none;animation:rise .6s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.sec{background:linear-gradient(160deg,var(--ink2),var(--ink3));border:1px solid var(--line);border-radius:4px;padding:18px 16px;margin-bottom:14px;position:relative}
+.sec::before{content:"";position:absolute;top:7px;left:7px;right:7px;bottom:7px;border:1px solid rgba(212,162,78,.08);pointer-events:none}
+.sec h2{
+  font-size:.95rem;color:var(--mango);letter-spacing:.3em;margin-bottom:12px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+}
+.sec h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{color:var(--gold-dim);font-weight:400;font-size:.72rem;letter-spacing:.15em;padding:5px 4px;border-bottom:1px solid var(--line);text-align:left}
+td{padding:7px 4px;border-bottom:1px solid rgba(212,162,78,.08);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.lv{display:inline-block;min-width:16px;text-align:center;font-size:.68rem;padding:1px 4px;border-radius:2px;margin-left:4px}
+.lv1{background:rgba(212,162,78,.28);color:var(--gold)}
+.lv2{background:rgba(212,162,78,.18);color:var(--gold)}
+.lv3{background:rgba(212,162,78,.10);color:var(--gold-dim)}
+.lv4{background:rgba(212,162,78,.06);color:var(--gold-dim)}
+.tag-g{color:var(--green)} .tag-b{color:var(--red)} .tag-m{color:var(--gold-dim)}
+.pos{font-size:.68rem;color:var(--gold-dim)}
+p,li{font-size:.88rem;margin-bottom:8px}
+ul{padding-left:1.1em}
+ul li::marker{color:var(--mango)}
+.good li::marker{color:var(--green)} .bad li::marker{color:var(--red)}
+.quote{
+  margin-top:4px;padding:14px 12px;border-left:2px solid var(--mango);
+  background:rgba(232,145,45,.06);font-size:.9rem;color:var(--paper);font-style:normal;
+}
+strong{color:var(--gold);font-weight:600}
+.warn{color:var(--red)}
+.stat{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{font-size:.72rem;padding:3px 10px;border:1px solid var(--line);border-radius:20px;color:var(--gold-dim);letter-spacing:.08em}
+.chip b{color:var(--gold);font-weight:600}
+.combo{padding:8px 10px;margin-bottom:8px;background:rgba(0,0,0,.25);border-radius:3px;font-size:.84rem}
+.combo b{color:var(--mango);font-family:monospace;font-size:.95rem;letter-spacing:.15em;margin-right:8px}
+.disclaim{font-size:.7rem;color:var(--gold-dim);text-align:center;margin-top:22px;letter-spacing:.1em;line-height:1.8}
+.foot-actions{display:flex;gap:10px;margin-top:4px}
+.ghost{
+  flex:1;padding:11px;border:1px solid var(--line);border-radius:3px;background:none;
+  color:var(--gold);font-family:var(--serif);font-size:.85rem;letter-spacing:.2em;cursor:pointer;
+}
+.ghost:active{background:rgba(212,162,78,.1)}
+
+/* ---------- reference ---------- */
+#refSec details{margin-bottom:10px;border:1px solid var(--line);border-radius:3px;background:rgba(0,0,0,.2)}
+#refSec summary{padding:10px 12px;font-size:.85rem;color:var(--gold);letter-spacing:.15em;cursor:pointer;list-style:none}
+#refSec summary::before{content:"◆ ";color:var(--mango);font-size:.7rem}
+#refSec details[open] summary{border-bottom:1px solid rgba(212,162,78,.1)}
+#refSec .body{padding:10px 12px;font-size:.8rem;color:var(--paper)}
+#refSec .body p{margin-bottom:6px;font-size:.8rem}
+.hint{font-size:.75rem;color:var(--gold-dim);text-align:center;margin-top:14px;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="seal">🥭</div>
+  <h1>海南大芒果</h1>
+  <div class="sub">数字能量 · 随身查</div>
+  <div class="rule-line"><span>八 星 磁 场 · 一 号 一 命</span></div>
+</header>
+
+<!-- ============ 输入 ============ -->
+<section class="card">
+  <div class="field">
+    <label>手机号码 / 车牌数字</label>
+    <input type="tel" id="num" maxlength="11" placeholder="输入 11 位号码" autocomplete="off">
+  </div>
+  <div class="grid2">
+    <div class="field">
+      <label>性别</label>
+      <select id="gender"><option value="m">男</option><option value="f">女</option></select>
+    </div>
+    <div class="field">
+      <label>年龄段</label>
+      <select id="age">
+        <option value="y">35岁以下</option>
+        <option value="m" selected>36-50岁</option>
+        <option value="o">50岁以上</option>
+      </select>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="field">
+      <label>婚姻</label>
+      <select id="married"><option value="1">已婚</option><option value="0">未婚</option></select>
+    </div>
+    <div class="field">
+      <label>职业类型</label>
+      <select id="job">
+        <option value="talk">口才/销售/讲师/律师</option>
+        <option value="skill">技术/手艺/专业岗</option>
+        <option value="biz">老板/生意/投资</option>
+        <option value="office">上班族/管理</option>
+        <option value="free">自由职业/灵活就业</option>
+        <option value="svc">服务/美业/公关</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn" id="goBtn">开 解</button>
+  <div class="err" id="err"></div>
+</section>
+
+<!-- ============ 结果 ============ -->
+<section id="result"></section>
+
+<!-- ============ 八星速查 ============ -->
+<section id="refSec" class="sec" style="margin-top:20px">
+  <h2>八 星 速 查</h2>
+  <details>
+    <summary>吉星 · 天医 / 生气 / 延年 / 伏位</summary>
+    <div class="body">
+      <p><b style="color:var(--gold)">天医</b>（13·68·49·27）：正财、正桃花、智慧、婚姻、善良。有财源、感情真挚，看婚姻第一时间看天医。</p>
+      <p><b style="color:var(--gold)">生气</b>（14·67·39·28）：贵人、人缘、乐观、幸运。全面解祸害（破财口舌疾病都解）。</p>
+      <p><b style="color:var(--gold)">延年</b>（19·78·34·26）：能力、事业、压力、责任。看工作一定看延年。女性少用（不超34/43，一两个为好）。</p>
+      <p><b style="color:var(--gold)">伏位</b>（11·22·99·88·66·77·33·44）：延续、稳定、积累。自身无好坏，延续前面的磁场。</p>
+    </div>
+  </details>
+  <details>
+    <summary>凶星 · 绝命 / 五鬼 / 祸害 / 六煞</summary>
+    <div class="body">
+      <p><b style="color:var(--red)">绝命</b>（12·69·48·37）：冲动、投资、义气、走极端。主固定资产（可能负债），肝不好，不结尾。</p>
+      <p><b style="color:var(--red)">五鬼</b>（18·79·36·24）：变化、聪明、熬夜、暗财。八星最凶，心脏心脑血管，要靠天医解。</p>
+      <p><b style="color:var(--red)">祸害</b>（17·89·46·23）：口才、口舌、疾病。祸害前面是病，结尾绝对败财。</p>
+      <p><b style="color:var(--red)">六煞</b>（16·47·38·29）：异性缘、偏桃花、交际、抑郁。肠胃、皮肤、情绪问题。</p>
+    </div>
+  </details>
+  <details>
+    <summary>0 与 5 · 选号禁忌</summary>
+    <div class="body">
+      <p><b style="color:var(--gold)">0</b>＝隐藏、坑、阴性、需求。0多体寒、财难聚、注意腰肾。</p>
+      <p><b style="color:var(--gold)">5</b>＝凸显、阻隔、努力。5在中间是阻隔，在后面是加强。</p>
+      <p><b style="color:var(--red)">不用组合</b>：218·318·816·618·718·817·798（五鬼）｜106·601·616·716·617·016·610（六煞）｜153·351·103·301·608·806（天医）｜414·141（生气）｜917·117·217·717·712·417（祸害）｜212·121·712·812·210·102（绝命）。</p>
+      <p><b style="color:var(--gold)">好结尾</b>：286·768·687·862·134·413·931；天医落结尾很重要；绝命、00 不结尾。</p>
+      <p><b style="color:var(--gold)">好号段</b>：133·132·139·138·186（139最好）；181慎用。</p>
+    </div>
+  </details>
+</section>
+
+<p class="disclaim">数字能量分析属传统文化研究与心理学启示<br>仅供参考 · 人生选择终究在自己手中</p>
+<p class="hint">提示：浏览器菜单里选"添加到主屏幕"，即可像APP一样随手打开</p>
+
+</div>
+
+<script>
+/* ================================================================
+   海南大芒果 · 数字能量离线引擎
+   知识数据源自内核知识库（八星总表 / 组合解读 / 选号禁忌 / 健康速查）
+================================================================ */
+
+/* ---------- 八星基础数据 ---------- */
+const STAR = {
+  tianyi:  {name:"天医", type:"吉", pairs:{13:1,31:1,68:2,86:2,49:3,94:3,27:4,72:4},
+    kw:"正财·正桃花·智慧·婚姻",
+    trait:"聪明善良、财源正、感情真挚，看人看事偏天真，高层次圈子里不愁吃穿",
+    wealth:"天医＝财源，赚钱相对容易，前面的数字是钱财来源",
+    health:"心宽体胖，注意富贵病、五官、年长后血液粘稠与心脑血管（大问题基本没有）"},
+  shengqi: {name:"生气", type:"吉", pairs:{14:1,41:1,67:2,76:2,39:3,93:3,28:4,82:4},
+    kw:"贵人·人缘·乐观·幸运",
+    trait:"乐观随缘、贵人运旺，无心插柳柳成荫，朋友愿意帮，应酬多",
+    wealth:"财源来自朋友和贵人捧场，不靠死努力靠人脉",
+    health:"应酬来者不拒，注意脾胃"},
+  yannian: {name:"延年", type:"吉", pairs:{19:1,91:1,78:2,87:2,34:3,43:3,26:4,62:4},
+    kw:"能力·事业·压力·责任",
+    trait:"能扛事、有担当、脚踏实地，认定方向就坚持，情感慢热专一",
+    wealth:"付出就有收获，事业型赚钱，靠能力吃饭",
+    health:"辛苦劳作积累，注意高血压、颈椎腰椎"},
+  fuwei:   {name:"伏位", type:"中", pairs:{11:1,22:1,99:2,88:2,66:3,77:3,33:4,44:4},
+    kw:"延续·稳定·积累",
+    trait:"求稳不轻易改变，延续前面的磁场，积累能量等质变",
+    wealth:"细水长流型，守成有余突破不足",
+    health:"多亚健康，维持时间长"},
+  jueming: {name:"绝命", type:"凶", pairs:{12:1,21:1,69:2,96:2,48:3,84:3,37:4,73:4},
+    kw:"冲动·投资·义气·走极端",
+    trait:"敢冲敢断、讲义气、三成把握就敢上，感情来得快去得快，交酒肉朋友",
+    wealth:"主固定资产（可能是负债），投资是把好手但易被套，借出去的钱基本要不回",
+    health:"肝不好（克肝），肝不好乘脾，男科女科问题"},
+  wugui:   {name:"五鬼", type:"凶", pairs:{18:1,81:1,79:2,97:2,36:3,63:3,24:4,42:4},
+    kw:"变化·聪明·熬夜·暗财",
+    trait:"脑子活想法多、越夜越精神、深沉看不透，思维异于常人常洞悉先机，但月光不留钱",
+    wealth:"来快钱暗财的路子多，但钱留不住",
+    health:"心脏、心脑血管、意外，常熬夜年长后记忆差"},
+  huohai:  {name:"祸害", type:"凶", pairs:{17:1,71:1,89:2,98:2,46:3,64:3,23:4,32:4},
+    kw:"口才·口舌·疾病",
+    trait:"会来事能说会道、迎合攀谈，表面人来疯内心不强大，言多必失",
+    wealth:"一口生财（讲师销售），但来得快去得快",
+    health:"祸害＝疾病，病多是吃出来的，祸害前面的数字就是病"},
+  liusha:  {name:"六煞", type:"凶", pairs:{16:1,61:1,47:2,74:2,38:3,83:3,29:4,92:4},
+    kw:"异性缘·偏桃花·交际·抑郁",
+    trait:"八面玲珑心思细腻、爱美有审美，情绪易抑郁、对亲近的人反而直白，冷处理感情",
+    wealth:"赚八方财、人际财，但不守财，钱花在形象和家里",
+    health:"肠胃、皮肤、情绪（抑郁躁郁），糖尿病倾向"}
+};
+const PAIR2STAR = {};
+for(const k in STAR){ for(const p in STAR[k].pairs){ PAIR2STAR[p] = {star:k, lv:STAR[k].pairs[p]}; } }
+
+/* ---------- 三数组合解读库（精选自知识库） ---------- */
+const COMBO = {
+  // 绝命系
+  "121":"投资周期长的项目，金额规模较大；也是投资失败/了结磁场（重复绝命）",
+  "112":"积累过程，慢慢谋划成熟后做大项目投资",
+  "212":"投资失败，基本被套",
+  "312":"拿钱去投资、买房子、投大项目",
+  "213":"投资挣到钱了，房产增值、项目有好回报",
+  "412":"朋友带来投资机会，或朋友决裂",
+  "214":"投资开心，能挣点钱",
+  "512":"很努力积极投身投资",
+  "215":"投资后有增长、追加投资",
+  "612":"投资谨慎反复复盘易成事",
+  "216":"投资郁闷亏钱；借钱给人很郁闷",
+  "712":"大病风险警示，注意肝",
+  "217":"肝病警示：肝区、消化系统要重点养护，务必戒酒控怒",
+  "812":"重大健康警示，同时偏门投资能力极强",
+  "218":"最危险组合：女性重点筛查乳腺宫颈，务必定期体检；投资易破产",
+  "912":"工作积极拼搏但易起冲突",
+  "219":"投资能力极强、专业，功课周全",
+  "012":"在团队中获得投资机会",
+  "210":"投资失败，或投到团队中看不到钱景",
+  "102":"投资被套，投进无底洞",
+  // 五鬼系
+  "118":"从稳定变不稳定的转折点",
+  "811":"伏位克五鬼：想法稳定下来，不错的磁场",
+  "318":"钱突然没了，或婚姻变动/第三者",
+  "813":"五鬼运财：来钱快、暗财，钱留不住",
+  "418":"朋友带来想法，或对朋友有筛选变化",
+  "814":"想法付诸实践，能交到想交的朋友",
+  "815":"加强五鬼能量，能想能干",
+  "618":"烂桃花多，身体需求而非情感",
+  "816":"想法负面越想越乱，情绪要疏导",
+  "718":"病情反复变化，多是意外或突然加重",
+  "817":"五鬼+祸害：心脏突发疾病、急性病警示",
+  "798":"五鬼+祸害：健康警示，定期体检",
+  "818":"更不稳定，爱猜想耍小聪明",
+  "918":"工作变动，常出差不着家，晚上加班",
+  "819":"做事稳妥专业，技术类上手快能到顶尖",
+  "018":"想脱离大社交圈，钱财外泄快",
+  "158":"半个五鬼，5是阻隔，想法有阻碍",
+  "810":"不稳定状态掉坑，亏损变化",
+  "108":"灵修磁场，想法被隐藏很深，城府深",
+  // 祸害系
+  "917":"脊椎、高血压、关节、妇科乳腺要重点体检",
+  "117":"慢性疾病、亚健康状态持续很久",
+  "711":"慢性病、病程持续很久",
+  "146":"长期吃喝致胃溃疡（不算严重）",
+  "417":"胃溃疡、肠胃、消化系统问题",
+  "317":"血液病、肥胖、高血脂、脂肪肝（富贵病）",
+  "712":"祸害接绝命：健康大警示",
+  "617":"情绪问题明显，注意精神压力、肠胃",
+  "716":"得病后很抑郁，内心负担大",
+  "717":"反复疾病，身上易有疤痕（手术/外伤）",
+  "898":"反复疾病",
+  "464":"疤痕体质，特别易留疤",
+  "232":"疤痕体质，反复口舌",
+  // 六煞系
+  "116":"花时间精力积累团队规模，家庭感情投入多",
+  "611":"团队稳定增长，611相对更稳",
+  "216":"敢做还到处说，情感表达直接",
+  "612":"委婉表达，想周全不易出错，但复盘过多易犹豫",
+  "316":"对婚姻失落感、抑郁倾向，适合公关美业",
+  "416":"贵人带来团队帮助",
+  "614":"异性贵人处成真朋友",
+  "616":"乱桃花多收不住，易皮肤病肠胃不好",
+  "916":"工作遇阻力、郁闷抱怨",
+  "619":"胡思乱想被理智取代，企业中很多陌生人来帮",
+  "016":"一直向外索取达团队成长，近乎神经质状态",
+  "610":"想法憋起来受内伤，严重情绪问题",
+  // 天医系
+  "313":"大师级别，催婚催财，但善多成灾",
+  "131":"桃花多起来，未婚合适已婚注意",
+  "686":"大师级别，桃花多",
+  "813":"来钱特别快的暗财（注意边界）",
+  "513":"认真付出，5前磁场是困难也是机会",
+  "153":"天医中间带5算半个：赚钱难，有钱就显摆",
+  "351":"天医中间带5算半个：赚钱难，有钱就显摆",
+  "103":"天医带0＝钱袋子漏了，易有异性出现",
+  "301":"天医带0＝钱袋子漏了",
+  "608":"天医带0＝钱袋子漏了",
+  "806":"天医带0＝钱袋子漏了",
+  // 生气系
+  "714":"开口就来贵人，人际好信任度高",
+  "414":"过度乐观，蒙蔽自己，没上进心",
+  "141":"过度乐观，得过且过",
+  "214":"朋友圈带来更多朋友圈，贵人多",
+  "412":"圈子带来投资机会",
+  "314":"婚姻很满足很快乐",
+  "413":"朋友慢慢带来乐观伴侣，少争吵",
+  "614":"异性贵人变成真正的朋友",
+  "416":"朋友让你郁闷，抱怨藏心里",
+  "419":"贵人带来工作机会和提升",
+  // 延年系
+  "119":"积累很久能力才达高度",
+  "911":"事业规模维持时间长",
+  "219":"投资能力极强，眼光独到（长线/固定资产）",
+  "912":"工作易起冲突；也因工作得投资机会",
+  "312":"管钱能力强，适合管财务",
+  "319":"管钱能力强",
+  "913":"努力工作辛勤做事业挣钱",
+  "419":"事业中易获贵人帮助",
+  "914":"越勤奋朋友贵人越多",
+  "519":"脚踏实地多动脑，严谨有规划",
+  "719":"口才一流，谈判沟通强",
+  "917":"工作中有争吵争议",
+  "819":"做事专业专注，滴水不漏",
+  "918":"工作事业常有变动（常出差）",
+  "919":"劳累辛苦，抗压极强但颈椎易出问题",
+  "191":"能开大公司，但问题多易资金断裂",
+  "019":"交际强，会向人要资源",
+  "910":"工作事业归零，抱怨多",
+  // 伏位系
+  "211":"绝命延续：固定资产持有时间长、变现差",
+  "311":"天医延续：情感财富稳定",
+  "113":"追求稳定收入，细水长流",
+  "411":"圈子稳定，贵人关系延续",
+  "114":"花时间精力积累贵人圈",
+  "611":"团队规模稳定增长",
+  "711":"能说会道，资源圈子稳定",
+  "811":"伏位治住五鬼变化，脚踏实地",
+  "911":"工作稳定，一直积累拼搏",
+  "110":"努力求稳但最后掉坑",
+  // 三数成像典型
+  "646":"圈子里多争执小人，利用不起来",
+  "494":"钱生钱",
+  "713":"开口来财，靠身边圈子赚钱",
+  "731":"开口来财，比913赚得多",
+  "913":"努力工作挣钱",
+  "274":"小天医到大天医＝收入增加、情感上升",
+  "493":"感情快乐升华，走向稳定",
+  "911":"稳定工作→稳定→赚到钱",
+  "6188":"烂桃花习惯延续"
+};
+
+/* ---------- 不用组合（禁忌） ---------- */
+const TABOO = {
+  "218":"五鬼·最危险（女性健康警示+易破产）","318":"五鬼·钱财突失/婚姻变动","816":"五鬼·情绪压抑烂桃花",
+  "618":"五鬼·烂桃花多","718":"五鬼·病情反复变化","817":"五鬼·心脏急性病警示","798":"五鬼·健康警示",
+  "106":"六煞·抑郁压抑","601":"六煞·抑郁压抑","616":"六煞·乱桃花收不住","716":"六煞·病后抑郁",
+  "617":"六煞·情绪/精神问题","016":"六煞·神经质索取","610":"六煞·想法憋成内伤",
+  "153":"天医·半个天医漏财","351":"天医·半个天医漏财","103":"天医·钱袋漏","301":"天医·钱袋漏",
+  "608":"天医·钱袋漏","806":"天医·钱袋漏",
+  "414":"生气·过度乐观","141":"生气·过度乐观",
+  "917":"祸害·脊椎关节妇科警示","117":"祸害·慢性病","217":"祸害·肝区警示","717":"祸害·反复疾病",
+  "712":"祸害·健康大警示","718":"祸害·病情恶化","417":"祸害·肠胃问题",
+  "212":"绝命·投资失败被套","121":"绝命·投资失败","712":"绝命·健康警示","812":"绝命·健康大警示",
+  "218":"绝命·最危险","210":"绝命·投资失败","102":"绝命·投资无底洞"
+};
+
+/* ---------- 工具 ---------- */
+const $ = id => document.getElementById(id);
+const LV_TXT = {1:"一级",2:"二级",3:"三级",4:"四级"};
+function posName(i,total){ const r=i/(total-1); return r<0.34?"前段":(r<0.67?"中段":"后段"); }
+
+/* ---------- 主分析 ---------- */
+function doAnalyze(){
+  const raw = $("num").value.replace(/\D/g,"");
+  if(raw.length<6){ $("err").textContent="号码至少要 6 位数字才好拆"; return; }
+  if(raw.length>11){ $("err").textContent="最多 11 位"; return; }
+  $("err").textContent="";
+  const r = analyze(raw, {
+    gender:$("gender").value, age:$("age").value,
+    married:$("married").value, job:$("job").value
+  });
+  render(r);
+}
+
+function analyze(raw, info){
+  const isPhone = raw.length===11 && raw[0]==="1";
+  const start = isPhone ? 1 : 0;                 // 号段1开头可不看：139只看39
+  const digits = raw.split("").map(Number);
+  const pairs = [];
+  for(let i=start;i<digits.length-1;i++){
+    const p = ""+digits[i]+digits[i+1];
+    const hit = PAIR2STAR[p];
+    const has05 = digits[i]===0||digits[i]===5||digits[i+1]===0||digits[i+1]===5;
+    pairs.push({idx:i, pair:p, star:hit?hit.star:null, lv:hit?hit.lv:0, has05});
+  }
+  // 三数组合扫描
+  const combos=[], taboos=[];
+  for(let i=start;i<digits.length-2;i++){
+    const t = raw.slice(i,i+3);
+    if(COMBO[t] && !combos.some(c=>c.t===t)) combos.push({t, txt:COMBO[t], pos:posName(i,digits.length-2)});
+    if(TABOO[t] && !taboos.some(c=>c.t===t)) taboos.push({t, txt:TABOO[t], pos:posName(i,digits.length-2)});
+  }
+  // 统计
+  const cnt = {};
+  pairs.forEach(p=>{ if(p.star) cnt[p.star]=(cnt[p.star]||0)+1; });
+  // 同星趋势（前小后大=上升）
+  const trends=[];
+  for(const s in cnt){
+    if(cnt[s]<2) continue;
+    const seq = pairs.filter(p=>p.star===s).map(p=>p.lv);
+    if(seq.length>=2){
+      if(seq[seq.length-1]<seq[0]) trends.push({star:s, dir:"up"});
+      else if(seq[seq.length-1]>seq[0]) trends.push({star:s, dir:"down"});
+    }
+  }
+  // 结尾
+  const last = pairs[pairs.length-1];
+  const last2 = raw.slice(-2);
+  return {raw, info, pairs, combos, taboos, cnt, trends, last, last2, isPhone};
+}
+
+/* ---------- 文案生成 ---------- */
+function buildReport(r){
+  const S = STAR;
+  const g = r.info.gender==="f" ? "女" : "男";
+  let trait=[], good=[], bad=[], advice=[], health=[];
+  const c = r.cnt;
+
+  // ---- 核心特质
+  const mainStars = Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,3);
+  mainStars.forEach(s=>{ trait.push(`${S[s].name}(${S[s].kw.split("·").slice(0,2).join("·")})`); });
+
+  // ---- 优势
+  if(c.tianyi) good.push(`天医×${c.tianyi}：财源有根，赚钱相对容易，感情真挚，婚姻看它——基础是稳的`);
+  if(c.shengqi) good.push(`生气×${c.shengqi}：贵人运旺，遇事有人帮，乐观随缘心态好`);
+  if(c.yannian) good.push(`延年×${c.yannian}：能扛事有担当，事业有锚，付出就有收获`);
+  if(c.jueming) good.push(`绝命×${c.jueming}：敢冲敢拼讲义气，投资看固定资产是行家（前提是管住冲动）`);
+  if(c.wugui) good.push(`五鬼×${c.wugui}：脑子活想法多，适合策划、设计、技术、网络行当`);
+  if(c.huohai) good.push(`祸害×${c.huohai}：口才是本钱，销售、讲师、谈判类职业顺势`);
+  if(c.liusha) good.push(`六煞×${c.liusha}：八面玲珑异性缘好，公关美业服务行业来财`);
+  if(c.fuwei) good.push(`伏位×${c.fuwei}：稳得住，能积累，守成有余`);
+
+  // ---- 婚姻
+  const marry=[];
+  if(c.tianyi){
+    if(c.tianyi>=3) marry.push(`天医${c.tianyi}个偏多：感情丰沛多情，${g==="女"?"已婚注意异性边界，别让正桃花溢出":"正桃花人缘好，注意别多情惹麻烦"}`);
+    else marry.push(`天医${c.tianyi}个：婚姻有根，感情真挚，正缘正桃花`);
+  } else {
+    if(c.yannian>=2) marry.push("没天医但延年多：靠责任和专一维系婚姻，一般不离，但容易枯燥");
+    else if(c.liusha>=2) marry.push("没天医且六煞多：感情最大变量在异性缘，把持住边界就稳");
+    else if(c.jueming>=2) marry.push("没天医且绝命多：易为兄弟义气/冲动伤感情，顾家是功课");
+    else marry.push("号码没有天医：感情上要主动经营，别等它自己变好");
+  }
+  if(g==="f" && c.yannian){
+    const strong = r.pairs.filter(p=>p.star==="yannian" && p.lv<=2).length;
+    if(strong>0) bad.push(`女性用延年${strong>=2?"偏多":"但能量偏强"}（19/91/78/87级）：事业心强压迫感也强，家里商量着来，别当领导`);
+    else if(c.yannian>=3) bad.push("女性延年偏多：管控多要求高，注意夫妻相处硬碰硬");
+  }
+  if(c.liusha && c.wugui) bad.push("六煞+五鬼同现：情感里想法多变化多，别冷处理，有话直说");
+
+  // ---- 事业/财运
+  const work=[];
+  if(c.yannian) work.push("事业有延年打底：能独当一面，老板愿意用，脚踏实地能成事");
+  else work.push("号码没有延年：事业缺个锚，要么跟对人，要么靠手艺/口才吃饭");
+  if(c.jueming>=2 && !c.tianyi) bad.push(`绝命${c.jueming}个又没天医托底：投资冲动强守财弱，钱过手紧——不担保、不借钱给兄弟、不跟风投资`);
+  if(c.jueming && c.tianyi) good.push("绝命+天医同现：敢拼又有财源，肯干能赚，房产类固定资产看得准");
+  if(c.huohai){
+    const job=r.info.job;
+    if(job==="talk") good.push("祸害口才配你的口才饭碗：顺势，越说越有财");
+    else bad.push(`祸害×${c.huohai}：口舌是非随身，职场少议论人少传话，"言多必失"四个字值钱`);
+  }
+  if(c.wugui>=2) bad.push(`五鬼×${c.wugui}：想法多变化大，常换赛道难沉淀，最好一门深入`);
+  if(!c.shengqi && !c.tianyi) advice.push("号里无生气无天医：贵人缘弱，多结善缘少硬扛，改号时优先补这两颗");
+
+  // ---- 结尾
+  const endTxt = endAnalysis(r);
+  if(endTxt.bad) bad.push(endTxt.bad);
+  if(endTxt.good) good.push(endTxt.good);
+
+  // ---- 健康
+  if(c.jueming) health.push("肝——少酒、控怒、别熬夜（绝命克肝）");
+  if(c.wugui) health.push("心脏心脑血管——少熬夜，五鬼是夜猫子星");
+  if(c.huohai) health.push("吃出来的病——管住嘴，肠胃口腔定期看（祸害主病，病看祸害前面）");
+  if(c.liusha) health.push("情绪与肠胃——抑郁倾向要疏导，皮肤血糖注意");
+  if(c.yannian>=2) health.push("血压颈椎腰椎——劳模病，别硬扛");
+  const zeroN = r.raw.split("").filter(d=>d==="0").length;
+  if(zeroN>=3) health.push(`0有${zeroN}个偏多：体寒、肾气弱，注意腰肾，财也难聚`);
+  if(r.raw.includes("217")||r.raw.includes("712")) health.push("肝区重点体检，戒酒");
+  if(r.raw.includes("917")) health.push("脊椎、关节、（女性）乳腺妇科重点体检");
+  if(r.raw.includes("817")||r.raw.includes("798")||r.raw.includes("218")) health.push("心脏+肿瘤标志物筛查要安排上，别拖");
+
+  // ---- 趋势
+  const trendTxt = r.trends.map(t=>
+    `${S[t.star].name}${t.dir==="up"?"由小变大——该方面整体上升":"由大变小——由强转缓"}`
+  );
+
+  // ---- 禁忌
+  const tabooTxt = r.taboos.map(t=>({t:t.t, txt:t.txt, pos:t.pos}));
+
+  // ---- 点睛
+  const spark = sparkLine(r, c);
+
+  return {trait, good, bad, advice, marry, work, health, trendTxt, tabooTxt, endTxt, spark};
+}
+
+function endAnalysis(r){
+  const S=STAR;
+  const l=r.last;
+  if(!l) return {};
+  if(r.last2.endsWith("00")) return {bad:"结尾00：最忌，财气归零，建议换号"};
+  if(l.has05 && !l.star) return {bad:"结尾带0/5：结果藏而不显（0）或劳而后得（5），事到收尾多一道坎"};
+  const s=l.star;
+  if(!s) return {};
+  switch(s){
+    case "tianyi": return {good:`结尾天医（${l.pair}）：天医落结尾很重要——财源收得住，感情有归宿，好结尾`};
+    case "shengqi": return {good:`结尾生气（${l.pair}）：贵人收尾，事情最后能落好`};
+    case "yannian": return {good:`结尾延年（${l.pair}）：责任心和能力收尾，晚运仍在做事，注意别太累`};
+    case "fuwei": return {bad:`结尾伏位（${l.pair}）：平稳延续，一件事做很久，突破要等契机`};
+    case "jueming": return {bad:`结尾绝命（${l.pair}）：绝命结尾连续破财——这是全号最大的硬伤，能换尽早换`};
+    case "huohai": return {bad:`结尾祸害（${l.pair}）：祸害结尾绝对败财，赚再多也留不住`};
+    case "wugui": return {bad:`结尾五鬼（${l.pair}）：收尾带变化，结果不稳，最后一步别松`};
+    case "liusha": return {bad:`结尾六煞（${l.pair}）：感情纠葛或人情债收尾，守住边界`};
+  }
+  return {};
+}
+
+function sparkLine(r, c){
+  const g = r.info.gender==="f"?"她":"他";
+  if(c.tianyi && c.yannian && !c.jueming) return "天医财源配延年事业，赚钱有人帮、做事有根基——这号打八十分往上，剩下的分交给自己的心念。";
+  if(c.tianyi>=2 && c.shengqi) return "财源+贵人双全，属于\"躺着都有人送机会\"的号。管好嘴、守住边界，日子只会往上走。";
+  if(c.jueming>=2 && !c.tianyi) return "一身胆气两只空手——本事在冲动里，坑也在冲动里。管住投资和担保，就赢了一半。";
+  if(c.wugui>=2) return "脑力值钱、定力值钱。想法落不了地都是空的，一门深入比十个点子强。";
+  if(c.huohai>=2 && c.shengqi) return "嘴是刀也是财，贵人是鞘。刀出鞘前先想想，这单是交情还是口舌。";
+  if(c.liusha>=2) return "人缘是本事，情绪是功课。八面玲珑的同时照顾好自己的心，感情别冷处理。";
+  if(!c.tianyi && !c.yannian) return "没财星没事业星的号，靠自己硬扛居多——攒本事、攒人缘，时机到了换号开运。";
+  return "号码是缘，心念是根。号给的是趋势，路还是自己走的——想好了，就慢慢都好起来。";
+}
+
+/* ---------- 渲染 ---------- */
+function render(r){
+  const R = buildReport(r);
+  const S = STAR;
+  let h = "";
+
+  // 拆解表
+  h += `<div class="sec"><h2>号 码 拆 解</h2><table><tr><th>组合</th><th>八星</th><th>能量</th><th>位置</th></tr>`;
+  r.pairs.forEach(p=>{
+    const st = p.star ? S[p.star] : null;
+    const cls = st ? (st.type==="吉"?"tag-g":st.type==="凶"?"tag-b":"tag-m") : "tag-m";
+    h += `<tr><td style="font-family:monospace;letter-spacing:.15em">${p.pair}</td>`;
+    if(st) h += `<td class="${cls}">${st.name}${p.has05?'<span class="pos">（带0/5）</span>':''}</td><td><span class="lv lv${p.lv}">${LV_TXT[p.lv]}</span></td>`;
+    else h += `<td class="tag-m">${p.pair[0]==="0"||p.pair[1]==="0"?"0隐藏区":"5阻隔区"}</td><td><span class="pos">—</span></td>`;
+    h += `<td><span class="pos">${posName(p.idx, r.raw.length-1)}</span></td></tr>`;
+  });
+  h += `</table>`;
+  // 统计chips
+  h += `<div class="stat">`;
+  for(const s in r.cnt) h += `<span class="chip">${S[s].name}<b>×${r.cnt[s]}</b></span>`;
+  const zeroN = r.raw.split("").filter(d=>d==="0").length;
+  const fiveN = r.raw.split("").filter(d=>d==="5").length;
+  if(zeroN) h += `<span class="chip">0<b>×${zeroN}</b></span>`;
+  if(fiveN) h += `<span class="chip">5<b>×${fiveN}</b></span>`;
+  h += `</div></div>`;
+
+  // 核心特质
+  h += `<div class="sec"><h2>核 心 特 质</h2><p>这号的主磁场是 <strong>${R.trait.join("、")}</strong>。${r.isPhone?"号段影响已略去，看的是号本身的磁场。":""}</p>`;
+  if(R.trendTxt.length) h += `<p>趋势上看：${R.trendTxt.join("；")}。</p>`;
+  h += `</div>`;
+
+  // 优势 / 注意
+  h += `<div class="sec"><h2>优 势 提 示</h2><ul class="good">`;
+  R.good.forEach(x=>h+=`<li>${x}</li>`);
+  if(!R.good.length) h+=`<li>号码吉星偏少，属于硬扛型——攒本事攒人缘是唯一的路</li>`;
+  h += `</ul></div>`;
+
+  h += `<div class="sec"><h2>注 意 事 项</h2><ul class="bad">`;
+  R.bad.forEach(x=>h+=`<li>${x}</li>`);
+  if(!R.bad.length) h+=`<li>无明显硬伤，保持即可</li>`;
+  h += `</ul></div>`;
+
+  // 婚姻 / 事业
+  h += `<div class="sec"><h2>婚 姻 感 情</h2><ul>`;
+  R.marry.forEach(x=>h+=`<li>${x}</li>`);
+  h += `</ul></div>`;
+  h += `<div class="sec"><h2>事 业 财 运</h2><ul>`;
+  R.work.forEach(x=>h+=`<li>${x}</li>`);
+  h += `</ul></div>`;
+
+  // 健康
+  h += `<div class="sec"><h2>健 康 养 护</h2><ul>`;
+  R.health.forEach(x=>h+=`<li>${x}</li>`);
+  if(!R.health.length) h+=`<li>无特别警示，常规体检即可</li>`;
+  h += `</ul></div>`;
+
+  // 命中组合
+  if(r.combos.length){
+    h += `<div class="sec"><h2>命 中 组 合</h2>`;
+    r.combos.forEach(c=>h+=`<div class="combo"><b>${c.t}</b>${c.txt}<span class="pos">（${c.pos}）</span></div>`);
+    h += `</div>`;
+  }
+  // 禁忌
+  if(r.taboos.length){
+    h += `<div class="sec"><h2>禁 忌 提 醒</h2>`;
+    r.taboos.forEach(t=>h+=`<div class="combo"><b>${t.t}</b><span class="warn">${t.txt}</span><span class="pos">（${t.pos}）</span></div>`);
+    h += `<p style="font-size:.75rem;color:var(--gold-dim)">以上组合属选号禁忌，已在用的重点防范对应事项。</p></div>`;
+  }
+
+  // 建议
+  h += `<div class="sec"><h2>大 芒 果 建 议</h2><ul>`;
+  if(R.endTxt.bad && /绝命|祸害|00/.test(R.endTxt.bad)) R.advice.unshift("结尾硬伤明显，有条件尽早规划换号：优先结尾天医/生气（如286、768、862、134、413、931类结尾）");
+  if(r.info.gender==="f" && r.cnt.yannian) R.advice.push("女性延年宁少勿多：换号时能量不超34/43，一两个正好");
+  if(!r.cnt.tianyi) R.advice.push("补天医：财源和婚姻都看它，换号第一优先");
+  if(!r.cnt.shengqi) R.advice.push("补生气：贵人星，全面解祸害");
+  if(!R.advice.length) R.advice.push("号整体可用，扬长避短即可");
+  R.advice.forEach(x=>h+=`<li>${x}</li>`);
+  h += `</ul></div>`;
+
+  // 点睛
+  h += `<div class="sec"><h2>一 句 点 睛</h2><div class="quote">${R.spark}</div></div>`;
+
+  h += `<div class="foot-actions">
+    <button class="ghost" data-act="copy">复制解读</button>
+    <button class="ghost" data-act="top">再查一个</button>
+  </div>`;
+
+  $("result").innerHTML = h;
+  $("result").style.display = "block";
+  $("result").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+function copyReport(){
+  const txt = $("result").innerText;
+  navigator.clipboard?.writeText(txt).then(()=>{
+    alert("解读已复制，可以发给朋友看");
+  }).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);
+    ta.select();document.execCommand("copy");ta.remove();alert("解读已复制");
+  });
+}
+
+/* 结果区按钮（事件委托，不用内联onclick） */
+$("result").addEventListener("click", function(e){
+  const act = e.target && e.target.getAttribute ? e.target.getAttribute("data-act") : null;
+  if(act === "copy") copyReport();
+  else if(act === "top") window.scrollTo({top:0, behavior:"smooth"});
+});
+
+/* 回车触发 + 按钮绑定（不用内联onclick，兼容所有手机浏览器） */
+$("num").addEventListener("keydown", e=>{ if(e.key==="Enter") doAnalyze(); });
+$("num").addEventListener("input", e=>{
+  e.target.value = e.target.value.replace(/\D/g,"");
+});
+$("goBtn").addEventListener("click", doAnalyze);
+
+/* 全局错误捕获：出错直接显示在屏幕上，方便定位 */
+window.onerror = function(msg, src, line){
+  const el = document.getElementById("err");
+  if(el) el.textContent = "程序出错: " + msg + " (行" + line + ")";
+  return false;
+};
+window.addEventListener("error", function(e){
+  const el = document.getElementById("err");
+  if(el && e.message) el.textContent = "程序出错: " + e.message;
+});
+</script>
+</body>
+</html>
