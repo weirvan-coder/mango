@@ -85,6 +85,16 @@ select{font-size:.9rem;letter-spacing:.1em;appearance:none;-webkit-appearance:no
 .seg button.on{background:linear-gradient(135deg,rgba(212,162,78,.30),rgba(232,145,45,.18));color:var(--gold);font-weight:600}
 .notice{margin-bottom:12px;padding:9px 11px;border-left:2px solid var(--gold-dim);border-radius:0 3px 3px 0;
   background:rgba(212,162,78,.09);color:var(--gold);font-size:.78rem;letter-spacing:.05em}
+/* ---------- 车牌点选模板 ---------- */
+.plate-disp{min-height:48px;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:3px;padding:9px 10px;
+  font-size:1.25rem;letter-spacing:.22em;color:var(--paper);text-align:center;word-break:break-all}
+.plate-disp .ph{font-size:.78rem;letter-spacing:.05em;color:var(--gold-dim)}
+.keypad{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:10px}
+.keypad button{padding:10px 0;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:3px;
+  color:var(--gold);font-family:var(--serif);font-size:.88rem;cursor:pointer;transition:background .15s}
+.keypad button:active{background:rgba(212,162,78,.25)}
+.keypad button.dim{color:var(--gold-dim);font-size:.76rem;letter-spacing:.05em}
 .btn{
   width:100%;margin-top:6px;padding:14px;border:none;border-radius:3px;cursor:pointer;
   font-family:var(--serif);font-size:1.05rem;letter-spacing:.5em;text-indent:.5em;font-weight:600;
@@ -167,9 +177,22 @@ strong{color:var(--gold);font-weight:600}
       <button type="button" data-type="plate" role="tab" aria-selected="false">车 牌</button>
     </div>
   </div>
-  <div class="field">
+  <div class="field" id="numField">
     <label id="numLabel">手机号码</label>
     <input type="tel" id="num" maxlength="11" inputmode="numeric" placeholder="输入 11 位手机号（至少 6 位）" autocomplete="off">
+  </div>
+  <!-- 车牌专用：点选模板（不用系统输入法，手机端也能准确录入） -->
+  <div id="plateInputs" style="display:none">
+    <div class="field">
+      <label>省份简称（可不选）</label>
+      <select id="plateProv"><option value="">不选</option></select>
+    </div>
+    <div class="field">
+      <label>车牌号码（点选字母与数字）</label>
+      <div class="plate-disp" id="plateDisp"></div>
+    </div>
+    <div class="keypad" id="keypad"></div>
+    <p class="pos" style="margin-top:8px;font-size:.72rem;color:var(--gold-dim);text-align:center">字母不参与拆解，只看其中的数字</p>
   </div>
   <div class="grid2">
     <div class="field">
@@ -453,6 +476,12 @@ const TABOO = {
 /* 车牌宽松正则：允许缺省份汉字；新能源6位/燃油5位 */
 const PLATE_RE = /^(?:[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-HJ-NP-Z]|[A-HJ-NP-Z])?[A-HJ-NP-Z0-9]{4,6}$/;
 
+/* 车牌点选模板数据：省份简称（31个）+ 发牌字母（去 I、O） */
+const PLATE_PROV = "京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川贵云藏陕甘青宁新".split("");
+const PLATE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ".split("");
+const PLATE_MAX = 7;          /* 代号1 + 序号最多6 */
+let plateChars = "";          /* 键盘已输入的字符（不含省份） */
+
 /* 车牌场景下各星断语（不看婚姻/职业，主看平安与气场） */
 const PLATE_RULES = {
   tianyi: {good:"天医在牌：车值钱、路上遇贵人，出事先有人搭手；新能源重点看电池健康度",
@@ -540,7 +569,9 @@ function validate(type, s){
 
 /* ---------- 主分析 ---------- */
 function doAnalyze(){
-  const v = validate(CUR_TYPE, $("num").value);
+  /* 手机号取输入框；车牌取点选模板拼出的完整车牌 */
+  const src = (CUR_TYPE==="plate") ? plateFull() : $("num").value;
+  const v = validate(CUR_TYPE, src);
   if(!v.ok){
     $("err").textContent = v.msg;
     /* 校验不通过时收起上一轮结果，避免错误提示与旧结果并存 */
@@ -917,19 +948,51 @@ $("result").addEventListener("click", function(e){
 /* 回车触发 + 按钮绑定（不用内联onclick，兼容所有手机浏览器） */
 $("num").addEventListener("keydown", e=>{ if(e.key==="Enter") doAnalyze(); });
 
-/* 输入过滤按类型分支：手机号只留数字；车牌保留汉字字母，只清非法字符
-   （v2.0 此处无条件 replace(/\D/g,"") 会吃掉车牌的汉字与字母，已修复） */
+/* 输入过滤：手机号只留数字（车牌走点选模板，不经过系统输入法） */
 $("num").addEventListener("input", e=>{
-  const v = e.target.value;
-  if(CUR_TYPE==="phone"){
-    const f = v.replace(/\D/g,"");
-    if(f!==v) e.target.value = f;
-  }else{
-    const f = toHalf(v).replace(/[^0-9A-Za-z·一-龥]/g,"").toUpperCase();
-    if(f!==v) e.target.value = f;
-  }
+  const f = e.target.value.replace(/\D/g,"");
+  if(f!==e.target.value) e.target.value = f;
 });
 $("goBtn").addEventListener("click", doAnalyze);
+
+/* ---------- 车牌点选模板 ---------- */
+function plateFull(){ return $("plateProv").value + plateChars; }
+function renderPlateDisp(){
+  const d = $("plateDisp"), full = plateFull();
+  if(!full){ d.innerHTML = '<span class="ph">点下方按键选择字母与数字</span>'; return; }
+  d.textContent = full;
+}
+function plateAppend(ch){ if(plateChars.length>=PLATE_MAX) return; plateChars += ch; renderPlateDisp(); }
+function plateBack(){ if(!plateChars) return; plateChars = plateChars.slice(0,-1); renderPlateDisp(); }
+function plateClear(){ plateChars = ""; renderPlateDisp(); }
+
+function buildKeypad(){
+  const prov = $("plateProv");
+  PLATE_PROV.forEach(p=>{
+    const o = document.createElement("option");
+    o.value = p; o.textContent = p;
+    prov.appendChild(o);
+  });
+  prov.addEventListener("change", renderPlateDisp);
+
+  const kp = $("keypad");
+  const mk = (txt, fn, cls, span)=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = txt;
+    if(cls) b.className = cls;
+    if(span) b.style.gridColumn = "span " + span;
+    b.addEventListener("click", fn);
+    return b;
+  };
+  "0123456789".split("").forEach(c=> kp.appendChild(mk(c, ()=>plateAppend(c))));
+  PLATE_LETTERS.slice(0,10).forEach(c=> kp.appendChild(mk(c, ()=>plateAppend(c))));
+  PLATE_LETTERS.slice(10,20).forEach(c=> kp.appendChild(mk(c, ()=>plateAppend(c))));
+  PLATE_LETTERS.slice(20).forEach(c=> kp.appendChild(mk(c, ()=>plateAppend(c))));
+  kp.appendChild(mk("退格", plateBack, "dim", 3));
+  kp.appendChild(mk("清空", plateClear, "dim", 3));
+}
+buildKeypad();
+renderPlateDisp();
 
 /* ---------- 类型切换 ---------- */
 function applyType(t, clearInput){
@@ -942,16 +1005,18 @@ function applyType(t, clearInput){
     b.classList.toggle("on", on);
     b.setAttribute("aria-selected", on ? "true" : "false");
   });
-  /* 输入框规格：部分安卓 WebView 的 maxlength 需显式重设 */
-  const el = $("num");
-  el.setAttribute("maxlength", isP ? "10" : "11");
-  el.setAttribute("inputmode", isP ? "text" : "numeric");
-  el.type = isP ? "text" : "tel";
-  el.placeholder = isP ? "例：沪B·DP7159 / 京A·DF1114" : "输入 11 位手机号（至少 6 位）";
-  $("numLabel").textContent = isP ? "车牌号码（含汉字/字母）" : "手机号码";
+  /* 手机号输入框 与 车牌点选模板 二选一 */
+  $("numField").style.display = isP ? "none" : "block";
+  $("plateInputs").style.display = isP ? "block" : "none";
   /* 婚姻/职业仅手机号需要 */
   $("extraFields").style.display = isP ? "none" : "grid";
-  if(clearInput){ el.value = ""; $("err").textContent = ""; }
+  if(clearInput){
+    $("num").value = "";
+    plateChars = "";
+    $("plateProv").value = "";
+    renderPlateDisp();
+    $("err").textContent = "";
+  }
   $("result").style.display = "none";
   $("result").innerHTML = "";
 }
@@ -959,7 +1024,7 @@ $("typeSeg").addEventListener("click", function(e){
   const b = e.target && e.target.closest ? e.target.closest("button[data-type]") : null;
   if(!b || b.getAttribute("data-type")===CUR_TYPE) return;
   applyType(b.getAttribute("data-type"), true);
-  $("num").focus();
+  if(CUR_TYPE==="phone") $("num").focus();
 });
 /* 方向键切换（可访问性） */
 $("typeSeg").addEventListener("keydown", function(e){
