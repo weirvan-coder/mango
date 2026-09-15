@@ -74,6 +74,17 @@ select{font-size:.9rem;letter-spacing:.1em;appearance:none;-webkit-appearance:no
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23d4a24e' fill='none'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* ---------- 类型分段选择器 ---------- */
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{
+  flex:1;min-height:44px;padding:12px 0;background:rgba(0,0,0,.35);border:none;cursor:pointer;
+  color:var(--gold-dim);font-family:var(--serif);font-size:.92rem;letter-spacing:.25em;text-indent:.25em;
+  transition:background .25s,color .25s;
+}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:linear-gradient(135deg,rgba(212,162,78,.30),rgba(232,145,45,.18));color:var(--gold);font-weight:600}
+.notice{margin-bottom:12px;padding:9px 11px;border-left:2px solid var(--gold-dim);border-radius:0 3px 3px 0;
+  background:rgba(212,162,78,.09);color:var(--gold);font-size:.78rem;letter-spacing:.05em}
 .btn{
   width:100%;margin-top:6px;padding:14px;border:none;border-radius:3px;cursor:pointer;
   font-family:var(--serif);font-size:1.05rem;letter-spacing:.5em;text-indent:.5em;font-weight:600;
@@ -150,8 +161,15 @@ strong{color:var(--gold);font-weight:600}
 <!-- ============ 输入 ============ -->
 <section class="card">
   <div class="field">
-    <label>手机号码 / 车牌数字</label>
-    <input type="tel" id="num" maxlength="11" placeholder="输入 11 位号码" autocomplete="off">
+    <label>号码类型</label>
+    <div class="seg" id="typeSeg" role="tablist" aria-label="号码类型">
+      <button type="button" data-type="phone" class="on" role="tab" aria-selected="true">手机号</button>
+      <button type="button" data-type="plate" role="tab" aria-selected="false">车 牌</button>
+    </div>
+  </div>
+  <div class="field">
+    <label id="numLabel">手机号码</label>
+    <input type="tel" id="num" maxlength="11" inputmode="numeric" placeholder="输入 11 位手机号（至少 6 位）" autocomplete="off">
   </div>
   <div class="grid2">
     <div class="field">
@@ -167,7 +185,7 @@ strong{color:var(--gold);font-weight:600}
       </select>
     </div>
   </div>
-  <div class="grid2">
+  <div class="grid2" id="extraFields">
     <div class="field">
       <label>婚姻</label>
       <select id="married"><option value="1">已婚</option><option value="0">未婚</option></select>
@@ -431,27 +449,121 @@ const TABOO = {
   "218":"绝命·最危险","210":"绝命·投资失败","102":"绝命·投资无底洞"
 };
 
+/* ---------- 车牌专用数据（v2.2） ---------- */
+/* 车牌宽松正则：允许缺省份汉字；新能源6位/燃油5位 */
+const PLATE_RE = /^(?:[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-HJ-NP-Z]|[A-HJ-NP-Z])?[A-HJ-NP-Z0-9]{4,6}$/;
+
+/* 车牌场景下各星断语（不看婚姻/职业，主看平安与气场） */
+const PLATE_RULES = {
+  tianyi: {good:"天医在牌：车值钱、路上遇贵人，出事先有人搭手；新能源重点看电池健康度",
+           drive:"心宽路宽，开车不较劲，事故率天然低"},
+  shengqi:{good:"生气在牌：行车顺、遇事有照应，车不易长期闲置，人缘带动车况",
+           drive:"心态随缘，不抢不争，路遇绿灯多"},
+  yannian:{good:"延年在牌：平安稳重，一台车开得久，适合商务与专业人士",
+           drive:"但延年过刚——易开斗气车、爱抢道；久驾护肩颈腰椎"},
+  fuwei:  {good:"伏位在牌：车\"宅\"——代步属性重、换车频率低，一台车跟很多年",
+           drive:"注意长期停放：电瓶、轮胎反而先老化，每周至少动一次"},
+  jueming:{bad:"绝命在牌：急刹碰撞、车身破损剐蹭偏多；忌车贷压身",
+           drive:"肝火旺易怒驾——上车前先降火，行车记录仪必装、保险买足"},
+  wugui:  {bad:"五鬼在牌：电路/自燃/充电安全要留心（新能源尤其），违章与变数反复",
+           drive:"熬夜疲劳驾驶是大忌；心脏血压问题别长途"},
+  huohai: {bad:"祸害在牌：路怒争执、罚单口舌，容易在路上跟人起冲突",
+           drive:"遇争执先说一句\"不好意思\"，不接火；病从口入影响精神"},
+  liusha: {bad:"六煞在牌：情绪低落时开车注意力散，雨天湿滑多留心",
+           drive:"车爱脏爱花哨，内饰别放影响视线的挂件"}
+};
+
+/* 车牌化解建议（替代"换号建议"，改牌成本高） */
+const PLATE_FIX = {
+  jueming:"必装行车记录仪、三者险买足；控怒再上车，不抢灯不别车",
+  wugui:"每年查电路与刹车，新能源查电池健康度；绝不疲劳驾驶、不熬夜长途",
+  huohai:"路上遇争执主动认个怂，不接火；罚单按时处理别拖成滞纳金",
+  liusha:"情绪差时不开快车；雨天减速，内饰少挂挡视线的物件",
+  yannian:"别开斗气车；每两小时下车活动肩颈腰椎",
+  fuwei:"每周至少开一次，别让车放着坏；定期查电瓶胎压",
+  tianyi:"保持就好，车顺人顺",
+  shengqi:"保持就好，多结路上善缘",
+  zero:"牌里 0 多：隐性故障——底盘渗漏、胎压、异响这类没显出来的毛病，定期排查",
+  five:"牌里 5 多：折腾——年检、保养、维修、过户这类事反复找上门，提前安排别拖"
+};
+
+/* 车牌专用点睛 */
+const PLATE_SPARK = [
+  {test:c=>c.tianyi&&c.shengqi&&!c.jueming&&!c.wugui, txt:"财星贵人双全的一块牌——车随牌顺，路随车宽。按时保养、别怠慢检查，这牌越开越顺。"},
+  {test:c=>c.yannian>=2&&!c.jueming, txt:"双延年稳如磐石，出入平安收得住。只是别把方向盘当擂台，肩颈也要顾。"},
+  {test:c=>c.fuwei>=2&&c.yannian, txt:"稳上加稳的牌，车是伙伴不是玩具。记着每周动一动，别让好牌在车库里放旧。"},
+  {test:c=>c.wugui>=2||c.jueming>=2, txt:"这块牌带火气——快是快，险也是险。电路刹车年年查，脾气收一收，平安才是真本事。"},
+  {test:c=>c.huohai>=2, txt:"路上口舌多，一半在牌性。遇事让一步，罚单少一张，省下的油钱比赢回来的多。"},
+  {test:c=>c.liusha>=2, txt:"情绪上车最误事。心情不好就慢点开，路不会跑，人得顾。"},
+  {test:c=>!c.tianyi&&!c.shengqi&&!c.yannian, txt:"牌上没吉星兜底，全靠手稳心细。守规矩、勤检查，人比牌管用。"}
+];
+
 /* ---------- 工具 ---------- */
 const $ = id => document.getElementById(id);
 const LV_TXT = {1:"一级",2:"二级",3:"三级",4:"四级"};
 function posName(i,total){ const r=i/(total-1); return r<0.34?"前段":(r<0.67?"中段":"后段"); }
 
+/* ---------- 类型与输入处理（v2.2） ---------- */
+let CUR_TYPE = "phone";
+try{ const t = localStorage.getItem("mango.type"); if(t==="phone"||t==="plate") CUR_TYPE = t; }catch(e){}
+
+/* 全角转半角 */
+function toHalf(s){
+  return s.replace(/[\uFF10-\uFF19\uFF21-\uFF3A\uFF41-\uFF5A]/g, ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0));
+}
+/* 归一化：手机号只留数字；车牌保留字母汉字，只清间隔符（两者都先做全角转半角） */
+function normalize(type, s){
+  if(type==="phone"){ const d = toHalf(s).replace(/\D/g,""); return {text:d, digits:d}; }
+  let t = toHalf(s).replace(/[\s·・\.\-—_()（）\[\]{}]/g,"").toUpperCase();
+  return {text:t, digits:t.replace(/\D/g,"")};
+}
+/* 校验：返回 {ok, level:"hard"|"soft", msg, digits, plate} */
+function validate(type, s){
+  const n = normalize(type, s);
+  if(type==="phone"){
+    if(!n.digits) return {ok:false, level:"hard", msg:"先填号码"};
+    if(n.digits.length<6) return {ok:false, level:"hard", msg:"手机号至少要 6 位数字才好拆", digits:n.digits};
+    if(n.digits.length>11) return {ok:false, level:"hard", msg:"手机号最多 11 位", digits:n.digits};
+    let soft = "";
+    if(n.digits.length===11 && n.digits[0]!=="1") soft = "这串数字不像标准手机号，已按完整数字拆盘";
+    return {ok:true, level:"soft", msg:soft, digits:n.digits, plate:null};
+  }
+  /* 车牌 */
+  if(!n.digits) return {ok:false, level:"hard", msg:"没读到数字，检查车牌是否输全", digits:""};
+  if(n.digits.length<3) return {ok:false, level:"hard", msg:"车牌可拆数字不足 3 位，看不出错落", digits:n.digits};
+  if(n.digits.length>6) return {ok:false, level:"hard", msg:"车牌数字最多 6 位，请检查是否多输", digits:n.digits};
+  let soft = "";
+  if(!PLATE_RE.test(n.text) && !/[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领]/.test(n.text))
+    soft = "车牌格式不太常见，已按其中的数字部分拆盘";
+  return {ok:true, level:"soft", msg:soft, digits:n.digits, plate:n.text};
+}
+
 /* ---------- 主分析 ---------- */
 function doAnalyze(){
-  const raw = $("num").value.replace(/\D/g,"");
-  if(raw.length<6){ $("err").textContent="号码至少要 6 位数字才好拆"; return; }
-  if(raw.length>11){ $("err").textContent="最多 11 位"; return; }
-  $("err").textContent="";
-  const r = analyze(raw, {
+  const v = validate(CUR_TYPE, $("num").value);
+  if(!v.ok){
+    $("err").textContent = v.msg;
+    /* 校验不通过时收起上一轮结果，避免错误提示与旧结果并存 */
+    $("result").style.display = "none";
+    $("result").innerHTML = "";
+    $("num").focus();
+    return;
+  }
+  $("err").textContent = "";
+  const r = analyze(v.digits, {
     gender:$("gender").value, age:$("age").value,
     married:$("married").value, job:$("job").value
-  });
+  }, {type:CUR_TYPE, plate:v.plate});
+  r.notice = v.msg || "";
   render(r);
 }
 
-function analyze(raw, info){
-  const isPhone = raw.length===11 && raw[0]==="1";
-  const start = isPhone ? 1 : 0;                 // 号段1开头可不看：139只看39
+function analyze(raw, info, opt){
+  opt = opt || {};
+  const type = opt.type || "phone";
+  /* 手机号且 11 位 1 开头 → 号段不看（139 只看 39）；车牌全数字入盘 */
+  const isPhone = type==="phone" && raw.length===11 && raw[0]==="1";
+  const start = isPhone ? 1 : 0;
   const digits = raw.split("").map(Number);
   const pairs = [];
   for(let i=start;i<digits.length-1;i++){
@@ -460,17 +572,17 @@ function analyze(raw, info){
     const has05 = digits[i]===0||digits[i]===5||digits[i+1]===0||digits[i+1]===5;
     pairs.push({idx:i, pair:p, star:hit?hit.star:null, lv:hit?hit.lv:0, has05});
   }
-  // 三数组合扫描
+  /* 三数组合扫描 */
   const combos=[], taboos=[];
   for(let i=start;i<digits.length-2;i++){
     const t = raw.slice(i,i+3);
     if(COMBO[t] && !combos.some(c=>c.t===t)) combos.push({t, txt:COMBO[t], pos:posName(i,digits.length-2)});
     if(TABOO[t] && !taboos.some(c=>c.t===t)) taboos.push({t, txt:TABOO[t], pos:posName(i,digits.length-2)});
   }
-  // 统计
+  /* 统计 */
   const cnt = {};
   pairs.forEach(p=>{ if(p.star) cnt[p.star]=(cnt[p.star]||0)+1; });
-  // 同星趋势（前小后大=上升）
+  /* 同星趋势（前小后大=上升） */
   const trends=[];
   for(const s in cnt){
     if(cnt[s]<2) continue;
@@ -480,14 +592,80 @@ function analyze(raw, info){
       else if(seq[seq.length-1]>seq[0]) trends.push({star:s, dir:"down"});
     }
   }
-  // 结尾
+  /* 结尾 */
   const last = pairs[pairs.length-1];
   const last2 = raw.slice(-2);
-  return {raw, info, pairs, combos, taboos, cnt, trends, last, last2, isPhone};
+  return {raw, info, pairs, combos, taboos, cnt, trends, last, last2, isPhone,
+          type, plate:opt.plate||null, digits:raw};
 }
 
 /* ---------- 文案生成 ---------- */
 function buildReport(r){
+  return r.type==="plate" ? plateReport(r) : phoneReport(r);
+}
+
+/* ===== 车牌报告（v2.2 新增）===== */
+function plateReport(r){
+  const S = STAR, c = r.cnt;
+  let trait=[], good=[], bad=[], advice=[], drive=[], car=[], health=[], tabooTxt=[];
+
+  Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,3).forEach(s=>{
+    trait.push(`${S[s].name}(${S[s].kw.split("·").slice(0,2).join("·")})`);
+  });
+
+  /* 各星在车牌上的断语 */
+  for(const s in c){
+    const R = PLATE_RULES[s];
+    if(!R) continue;
+    if(R.good) good.push(`${R.good}（${c[s]}处）`);
+    if(R.bad)  bad.push(`${R.bad}（${c[s]}处）`);
+    if(R.drive) drive.push(R.drive);
+  }
+
+  /* 结尾：车牌场景权重最高 */
+  const l = r.last;
+  if(l && l.star){
+    const nm = S[l.star].name;
+    if(S[l.star].type==="吉") good.push(`收尾${nm}（${l.pair}）：车牌最看收尾——行程收得住，出入平安有归结，这块牌最值钱的地方就在这两位`);
+    else bad.push(`收尾${nm}（${l.pair}）：车牌最看收尾，凶星收尾＝事到临头出变数，这块牌最大的短板在最后两位`);
+  } else if(l){
+    bad.push(`收尾带 0/5（${l.pair}）：结果藏而不显或劳而后得，收尾多一道坎`);
+  }
+
+  /* 0 / 5 车牌专用语义 */
+  const zeroN = r.raw.split("").filter(d=>d==="0").length;
+  const fiveN = r.raw.split("").filter(d=>d==="5").length;
+  if(zeroN>=2) car.push(PLATE_FIX.zero);
+  if(fiveN>=2) car.push(PLATE_FIX.five);
+  if(zeroN>=1 && fiveN>=1) car.push("0 与 5 同多：既藏毛病又折腾，保养周期宁可提前别拖后");
+
+  /* 健康（驾驶者长期开车口径） */
+  if(c.jueming) health.push("肝火与情绪——少怒驾，别带着气上车");
+  if(c.wugui) health.push("心脏血压——不熬夜开车，长途中途必歇");
+  if(c.yannian) health.push("颈椎腰椎——久坐劳损，两小时下车活动");
+  if(c.huohai) health.push("吃出来的毛病——肠胃口腔，路上别乱吃");
+  if(c.liusha) health.push("情绪与注意力——心情差时慢点开");
+  if(!health.length) health.push("无特别警示，常规体检即可");
+
+  /* 化解建议（不给"换牌"建议） */
+  for(const s in c){
+    if(S[s].type==="凶" && PLATE_FIX[s]) advice.push(PLATE_FIX[s]);
+  }
+  if(c.tianyi && PLATE_FIX.tianyi && !bad.length) advice.push(PLATE_FIX.tianyi);
+  if(!advice.length) advice.push("牌面平和，按时保养、按期检查即可");
+
+  const trendTxt = r.trends.map(t=>
+    `${S[t.star].name}${t.dir==="up"?"由小变大——该方面整体上升":"由大变小——由强转缓"}`
+  );
+  tabooTxt = r.taboos.map(t=>({t:t.t, txt:t.txt, pos:t.pos}));
+
+  let spark = "号码是缘，心念是根。牌给的是趋势，方向盘在自己手里——开得稳，比什么牌都管用。";
+  for(const s of PLATE_SPARK){ if(s.test(c)){ spark = s.txt; break; } }
+
+  return {trait, good, bad, advice, drive, car, health, trendTxt, tabooTxt, spark, isPlate:true};
+}
+
+function phoneReport(r){
   const S = STAR;
   const g = r.info.gender==="f" ? "女" : "男";
   let trait=[], good=[], bad=[], advice=[], health=[];
@@ -607,10 +785,17 @@ function sparkLine(r, c){
 function render(r){
   const R = buildReport(r);
   const S = STAR;
+  const plate = r.type==="plate";
   let h = "";
 
-  // 拆解表
-  h += `<div class="sec"><h2>号 码 拆 解</h2><table><tr><th>组合</th><th>八星</th><th>能量</th><th>位置</th></tr>`;
+  /* 软提示黄条 */
+  if(r.notice) h += `<div class="notice">${r.notice}</div>`;
+
+  /* 标题回显 */
+  const shown = plate ? (r.plate || r.raw) : r.raw;
+  h += `<div class="sec"><h2>${plate?"车 牌 拆 解":"号 码 拆 解"}</h2>
+        <p style="font-size:.8rem;color:var(--gold-dim);margin-bottom:10px">${plate?"车牌":"号码"}：<strong style="letter-spacing:.15em">${shown}</strong>${plate?`　可拆数字：<strong>${r.raw}</strong>（字母不参与拆解）`:""}</p>
+        <table><tr><th>组合</th><th>八星</th><th>能量</th><th>位置</th></tr>`;
   r.pairs.forEach(p=>{
     const st = p.star ? S[p.star] : null;
     const cls = st ? (st.type==="吉"?"tag-g":st.type==="凶"?"tag-b":"tag-m") : "tag-m";
@@ -620,7 +805,7 @@ function render(r){
     h += `<td><span class="pos">${posName(p.idx, r.raw.length-1)}</span></td></tr>`;
   });
   h += `</table>`;
-  // 统计chips
+  /* 统计chips */
   h += `<div class="stat">`;
   for(const s in r.cnt) h += `<span class="chip">${S[s].name}<b>×${r.cnt[s]}</b></span>`;
   const zeroN = r.raw.split("").filter(d=>d==="0").length;
@@ -629,15 +814,16 @@ function render(r){
   if(fiveN) h += `<span class="chip">5<b>×${fiveN}</b></span>`;
   h += `</div></div>`;
 
-  // 核心特质
-  h += `<div class="sec"><h2>核 心 特 质</h2><p>这号的主磁场是 <strong>${R.trait.join("、")}</strong>。${r.isPhone?"号段影响已略去，看的是号本身的磁场。":""}</p>`;
+  /* 核心特质 */
+  h += `<div class="sec"><h2>核 心 特 质</h2><p>${plate?"这块牌":"这号"}的主磁场是 <strong>${R.trait.join("、")}</strong>。${plate?"车牌只看数字，字母与省份不参与拆解；收尾两位权重最高。":(r.isPhone?"号段影响已略去，看的是号本身的磁场。":"")}</p>`;
   if(R.trendTxt.length) h += `<p>趋势上看：${R.trendTxt.join("；")}。</p>`;
   h += `</div>`;
 
-  // 优势 / 注意
+  /* 优势 / 注意 */
   h += `<div class="sec"><h2>优 势 提 示</h2><ul class="good">`;
   R.good.forEach(x=>h+=`<li>${x}</li>`);
-  if(!R.good.length) h+=`<li>号码吉星偏少，属于硬扛型——攒本事攒人缘是唯一的路</li>`;
+  if(!R.good.length) h+= plate ? `<li>牌上吉星不显，属于"靠人开车"型——规矩与检查是你的护身符</li>`
+                              : `<li>号码吉星偏少，属于硬扛型——攒本事攒人缘是唯一的路</li>`;
   h += `</ul></div>`;
 
   h += `<div class="sec"><h2>注 意 事 项</h2><ul class="bad">`;
@@ -645,44 +831,60 @@ function render(r){
   if(!R.bad.length) h+=`<li>无明显硬伤，保持即可</li>`;
   h += `</ul></div>`;
 
-  // 婚姻 / 事业
-  h += `<div class="sec"><h2>婚 姻 感 情</h2><ul>`;
-  R.marry.forEach(x=>h+=`<li>${x}</li>`);
-  h += `</ul></div>`;
-  h += `<div class="sec"><h2>事 业 财 运</h2><ul>`;
-  R.work.forEach(x=>h+=`<li>${x}</li>`);
-  h += `</ul></div>`;
+  if(plate){
+    /* 车牌专属：行车习惯 + 车辆养护 */
+    h += `<div class="sec"><h2>行 车 习 惯</h2><ul>`;
+    R.drive.forEach(x=>h+=`<li>${x}</li>`);
+    if(!R.drive.length) h+=`<li>牌性平和，正常开即可</li>`;
+    h += `</ul></div>`;
 
-  // 健康
-  h += `<div class="sec"><h2>健 康 养 护</h2><ul>`;
+    h += `<div class="sec"><h2>车 辆 与 财 气</h2><ul>`;
+    R.car.forEach(x=>h+=`<li>${x}</li>`);
+    if(!R.car.length) h+=`<li>0/5 不多，车况与花销都在明面上，按期保养即可</li>`;
+    h += `</ul></div>`;
+  } else {
+    /* 手机号：婚姻 + 事业 */
+    h += `<div class="sec"><h2>婚 姻 感 情</h2><ul>`;
+    R.marry.forEach(x=>h+=`<li>${x}</li>`);
+    h += `</ul></div>`;
+    h += `<div class="sec"><h2>事 业 财 运</h2><ul>`;
+    R.work.forEach(x=>h+=`<li>${x}</li>`);
+    h += `</ul></div>`;
+  }
+
+  /* 健康 */
+  h += `<div class="sec"><h2>${plate?"驾 驶 者 健 康":"健 康 养 护"}</h2><ul>`;
   R.health.forEach(x=>h+=`<li>${x}</li>`);
   if(!R.health.length) h+=`<li>无特别警示，常规体检即可</li>`;
   h += `</ul></div>`;
 
-  // 命中组合
+  /* 命中组合 */
   if(r.combos.length){
     h += `<div class="sec"><h2>命 中 组 合</h2>`;
     r.combos.forEach(c=>h+=`<div class="combo"><b>${c.t}</b>${c.txt}<span class="pos">（${c.pos}）</span></div>`);
+    if(plate) h += `<p style="font-size:.75rem;color:var(--gold-dim)">车牌主看平安与气场，以上组合偏人事财运类，作参考。</p>`;
     h += `</div>`;
   }
-  // 禁忌
+  /* 禁忌 */
   if(r.taboos.length){
     h += `<div class="sec"><h2>禁 忌 提 醒</h2>`;
     r.taboos.forEach(t=>h+=`<div class="combo"><b>${t.t}</b><span class="warn">${t.txt}</span><span class="pos">（${t.pos}）</span></div>`);
-    h += `<p style="font-size:.75rem;color:var(--gold-dim)">以上组合属选号禁忌，已在用的重点防范对应事项。</p></div>`;
+    h += `<p style="font-size:.75rem;color:var(--gold-dim)">${plate?"以上组合在车牌上重点防范对应的行车与车况事项。":"以上组合属选号禁忌，已在用的重点防范对应事项。"}</p></div>`;
   }
 
-  // 建议
+  /* 建议 */
   h += `<div class="sec"><h2>大 芒 果 建 议</h2><ul>`;
-  if(R.endTxt.bad && /绝命|祸害|00/.test(R.endTxt.bad)) R.advice.unshift("结尾硬伤明显，有条件尽早规划换号：优先结尾天医/生气（如286、768、862、134、413、931类结尾）");
-  if(r.info.gender==="f" && r.cnt.yannian) R.advice.push("女性延年宁少勿多：换号时能量不超34/43，一两个正好");
-  if(!r.cnt.tianyi) R.advice.push("补天医：财源和婚姻都看它，换号第一优先");
-  if(!r.cnt.shengqi) R.advice.push("补生气：贵人星，全面解祸害");
-  if(!R.advice.length) R.advice.push("号整体可用，扬长避短即可");
+  if(!plate){
+    if(R.endTxt.bad && /绝命|祸害|00/.test(R.endTxt.bad)) R.advice.unshift("结尾硬伤明显，有条件尽早规划换号：优先结尾天医/生气（如286、768、862、134、413、931类结尾）");
+    if(r.info.gender==="f" && r.cnt.yannian) R.advice.push("女性延年宁少勿多：换号时能量不超34/43，一两个正好");
+    if(!r.cnt.tianyi) R.advice.push("补天医：财源和婚姻都看它，换号第一优先");
+    if(!r.cnt.shengqi) R.advice.push("补生气：贵人星，全面解祸害");
+    if(!R.advice.length) R.advice.push("号整体可用，扬长避短即可");
+  }
   R.advice.forEach(x=>h+=`<li>${x}</li>`);
   h += `</ul></div>`;
 
-  // 点睛
+  /* 点睛 */
   h += `<div class="sec"><h2>一 句 点 睛</h2><div class="quote">${R.spark}</div></div>`;
 
   h += `<div class="foot-actions">
@@ -714,10 +916,61 @@ $("result").addEventListener("click", function(e){
 
 /* 回车触发 + 按钮绑定（不用内联onclick，兼容所有手机浏览器） */
 $("num").addEventListener("keydown", e=>{ if(e.key==="Enter") doAnalyze(); });
+
+/* 输入过滤按类型分支：手机号只留数字；车牌保留汉字字母，只清非法字符
+   （v2.0 此处无条件 replace(/\D/g,"") 会吃掉车牌的汉字与字母，已修复） */
 $("num").addEventListener("input", e=>{
-  e.target.value = e.target.value.replace(/\D/g,"");
+  const v = e.target.value;
+  if(CUR_TYPE==="phone"){
+    const f = v.replace(/\D/g,"");
+    if(f!==v) e.target.value = f;
+  }else{
+    const f = toHalf(v).replace(/[^0-9A-Za-z·一-龥]/g,"").toUpperCase();
+    if(f!==v) e.target.value = f;
+  }
 });
 $("goBtn").addEventListener("click", doAnalyze);
+
+/* ---------- 类型切换 ---------- */
+function applyType(t, clearInput){
+  CUR_TYPE = (t==="plate") ? "plate" : "phone";
+  try{ localStorage.setItem("mango.type", CUR_TYPE); }catch(e){}
+  const isP = CUR_TYPE==="plate";
+  /* 分段控件选中态 */
+  $("typeSeg").querySelectorAll("button").forEach(b=>{
+    const on = b.getAttribute("data-type")===CUR_TYPE;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  /* 输入框规格：部分安卓 WebView 的 maxlength 需显式重设 */
+  const el = $("num");
+  el.setAttribute("maxlength", isP ? "10" : "11");
+  el.setAttribute("inputmode", isP ? "text" : "numeric");
+  el.type = isP ? "text" : "tel";
+  el.placeholder = isP ? "例：沪B·DP7159 / 京A·DF1114" : "输入 11 位手机号（至少 6 位）";
+  $("numLabel").textContent = isP ? "车牌号码（含汉字/字母）" : "手机号码";
+  /* 婚姻/职业仅手机号需要 */
+  $("extraFields").style.display = isP ? "none" : "grid";
+  if(clearInput){ el.value = ""; $("err").textContent = ""; }
+  $("result").style.display = "none";
+  $("result").innerHTML = "";
+}
+$("typeSeg").addEventListener("click", function(e){
+  const b = e.target && e.target.closest ? e.target.closest("button[data-type]") : null;
+  if(!b || b.getAttribute("data-type")===CUR_TYPE) return;
+  applyType(b.getAttribute("data-type"), true);
+  $("num").focus();
+});
+/* 方向键切换（可访问性） */
+$("typeSeg").addEventListener("keydown", function(e){
+  if(e.key!=="ArrowLeft" && e.key!=="ArrowRight") return;
+  applyType(CUR_TYPE==="phone"?"plate":"phone", true);
+  const cur = $("typeSeg").querySelector("button.on");
+  if(cur) cur.focus();
+});
+
+/* 初始化：应用记忆的类型 */
+applyType(CUR_TYPE, false);
 
 /* 全局错误捕获：出错直接显示在屏幕上，方便定位 */
 window.onerror = function(msg, src, line){
